@@ -2,7 +2,7 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <title>Hacking Green – 2-Minute File Share Portal</title>
+  <title> Quick file sharing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -119,8 +119,8 @@
 </head>
 <body>
   <div class="box">
-    <h2>Hacking Green – 2 Minute File Transfer</h2>
-    <p>Upload karo → doosre device se turant download → 5 minute baad auto delete.</p>
+    <h2> quick file sharing</h2>
+    <p>Note - Uploaded files will be automatically deleted after 5 minutes.</p>
 
     <div id="serverStatus" class="status-pill">
       <div id="serverDot" class="dot connecting"></div>
@@ -152,7 +152,7 @@
     color:#00ffcc;
     font-size:1rem;
     text-shadow:0 0 8px #00ff99;">
-    🔥 Powered by <b>BAPON BARMON</b> 🔥
+     Powered by <b>BAPON BARMON</b> 
   </p>
 
 <script>
@@ -200,14 +200,14 @@
     const input = document.getElementById("fileInput");
     const files = input.files;
     if (!files.length) {
-      alert("Pehle kam se kam ek file select karo.");
+      alert(" First upload any file.");
       return;
     }
 
     // 10 MB limit
     for (let f of files) {
       if (f.size > 10 * 1024 * 1024) {
-        alert("File " + f.name + " 10 MB se badi hai.");
+        alert("File " + f.name + "You can upload up to 10 MB");
         return;
       }
     }
@@ -255,7 +255,7 @@
           progressText.textContent = "";
         }, 1500);
       } else {
-        uploadStatus.textContent = "Upload failed. Server ya network issue.";
+        uploadStatus.textContent = "Upload failed. Server or network issue.";
         setServerStatus("offline");
         progressText.textContent = "Upload failed.";
         progressFill.style.width = "0%";
@@ -304,7 +304,7 @@
     fileList.innerHTML = "";
 
     if (!filesState.length) {
-      fileList.innerHTML = "<p>Abhi koi active file nahi hai.</p>";
+      fileList.innerHTML = "<p>No active file available for Download.</p>";
       return;
     }
 
@@ -333,7 +333,7 @@
 
   // Manual delete button handler
   async function deleteFileNow(id) {
-    const sure = confirm("Kya tum is file ko turant delete karna chahte ho?");
+    const sure = confirm(" Are you want delete this file ?");
     if (!sure) return;
 
     try {
@@ -343,7 +343,7 @@
       if (!res.ok) throw 0;
       await loadFiles();
     } catch {
-      alert("Delete fail ho gaya. Server offline ya network issue ho sakta hai.");
+      alert("Delete fail. Server offline or network issue.");
     }
   }
 
