@@ -38,12 +38,51 @@
     .connecting { background: yellow; }
     .online { background: #00ff99; box-shadow: 0 0 10px #00ff99; }
     .offline { background: red; }
+
     .file-item {
       border: 1px solid #006600;
       padding: 10px;
       border-radius: 8px;
       margin-bottom: 10px;
     }
+
+    .file-actions {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-download {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #00ff99, #00cc66);
+      color: #001a00 !important;
+      font-weight: bold;
+      text-decoration: none;
+      border: 1px solid #00ff99;
+      box-shadow: 0 0 8px rgba(0, 255, 153, 0.5);
+    }
+
+    .btn-download:hover {
+      filter: brightness(1.2);
+    }
+
+    .btn-delete {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #ff4d4d;
+      background: #330000;
+      color: #ffb3b3;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .btn-delete:hover {
+      filter: brightness(1.1);
+    }
+
     button {
       padding: 8px 18px;
       background: #00ff99;
@@ -59,7 +98,7 @@
 <body>
   <div class="box">
     <h2>Hacking Green – 2 Minute File Transfer</h2>
-    <p>Upload karo → doosre device se turant download → 2 minute baad auto delete.</p>
+    <p>Upload karo → doosre device se turant download → 5 minute baad auto delete.</p>
 
     <div id="serverStatus" class="status-pill">
       <div id="serverDot" class="dot connecting"></div>
@@ -68,7 +107,7 @@
 
     <!-- Upload Section -->
     <input type="file" id="fileInput" multiple />
-    <br><br>
+    <br /><br />
     <button id="uploadBtn">Upload Files</button>
     <p id="uploadStatus"></p>
 
@@ -76,8 +115,18 @@
     <div id="fileList"></div>
   </div>
 
+  <!-- Footer -->
+  <p style="
+    text-align:center;
+    margin-top:25px;
+    color:#00ffcc;
+    font-size:1rem;
+    text-shadow:0 0 8px #00ff99;">
+    🔥 Powered by <b>BAPON BARMON</b> 🔥
+  </p>
+
 <script>
-  // ← yahi tumhara Render backend URL hai – ise mat badalna
+  // ← yahi tumhara Render backend URL hai
   const API_BASE = "https://file-transfer-backend-ifcf.onrender.com";
 
   const serverDot = document.getElementById("serverDot");
@@ -117,7 +166,10 @@
   async function uploadFiles() {
     const input = document.getElementById("fileInput");
     const files = input.files;
-    if (!files.length) return alert("Pehle kam se kam ek file select karo.");
+    if (!files.length) {
+      alert("Pehle kam se kam ek file select karo.");
+      return;
+    }
 
     // 10 MB limit
     for (let f of files) {
@@ -147,7 +199,7 @@
       input.value = "";
       loadFiles();
     } catch {
-      uploadStatus.textContent = "Upload failed. Server offline ya slow hai.";
+      uploadStatus.textContent = "Upload failed. Server offline ya network issue.";
       setServerStatus("offline");
       uploadBtn.disabled = false;
     }
@@ -190,10 +242,33 @@
       div.innerHTML = `
         <b>${f.originalName}</b><br>
         Expires in: ${timer}<br><br>
-        <a href="${API_BASE}/download/${f.id}" target="_blank" style="color:#00ff99;">DOWNLOAD</a>
+        <div class="file-actions">
+          <a class="btn-download" href="${API_BASE}/download/${f.id}" target="_blank">
+            ⬇ Download
+          </a>
+          <button class="btn-delete" onclick="deleteFileNow('${f.id}')">
+            🗑 Delete
+          </button>
+        </div>
       `;
       fileList.appendChild(div);
     });
+  }
+
+  // Manual delete button handler
+  async function deleteFileNow(id) {
+    const sure = confirm("Kya tum is file ko turant delete karna chahte ho?");
+    if (!sure) return;
+
+    try {
+      const res = await fetch(API_BASE + "/files/" + id, {
+        method: "DELETE"
+      });
+      if (!res.ok) throw 0;
+      await loadFiles();
+    } catch {
+      alert("Delete fail ho gaya. Server offline ya network issue ho sakta hai.");
+    }
   }
 
   uploadBtn.addEventListener("click", uploadFiles);
