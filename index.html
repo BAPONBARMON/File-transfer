@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hacking Green – 2-Minute File Share Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #00ff99;
+      font-family: "Share Tech Mono", monospace;
+      padding: 20px;
+    }
+    .box {
+      max-width: 600px;
+      margin: auto;
+      border: 1px solid #00ff99;
+      padding: 18px;
+      border-radius: 10px;
+      background: rgba(0, 40, 0, 0.4);
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #002a00;
+      border: 1px solid #00ff99;
+      padding: 6px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .connecting { background: yellow; }
+    .online { background: #00ff99; box-shadow: 0 0 10px #00ff99; }
+    .offline { background: red; }
+    .file-item {
+      border: 1px solid #006600;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 18px;
+      background: #00ff99;
+      color: #001a00;
+      font-weight: bold;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.2); }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Hacking Green – 2 Minute File Transfer</h2>
+    <p>Upload karo → doosre device se turant download → 2 minute baad auto delete.</p>
+
+    <div id="serverStatus" class="status-pill">
+      <div id="serverDot" class="dot connecting"></div>
+      <span id="serverText">Connecting to server…</span>
+    </div>
+
+    <!-- Upload Section -->
+    <input type="file" id="fileInput" multiple />
+    <br><br>
+    <button id="uploadBtn">Upload Files</button>
+    <p id="uploadStatus"></p>
+
+    <h3>Active Files:</h3>
+    <div id="fileList"></div>
+  </div>
+
+<script>
+  // ← yahi tumhara Render backend URL hai – ise mat badalna
+  const API_BASE = "https://file-transfer-backend-itcf.onrender.com";
+
+  const serverDot = document.getElementById("serverDot");
+  const serverText = document.getElementById("serverText");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const uploadStatus = document.getElementById("uploadStatus");
+  const fileList = document.getElementById("fileList");
+
+  let filesState = [];
+
+  function setServerStatus(mode) {
+    serverDot.classList.remove("connecting", "online", "offline");
+    if (mode === "connecting") {
+      serverDot.classList.add("connecting");
+      serverText.textContent = "Connecting to server…";
+    } else if (mode === "online") {
+      serverDot.classList.add("online");
+      serverText.textContent = "Server Connected";
+    } else {
+      serverDot.classList.add("offline");
+      serverText.textContent = "Server Offline / Sleeping";
+    }
+  }
+
+  async function checkServer() {
+    setServerStatus("connecting");
+    try {
+      const res = await fetch(API_BASE + "/", { method: "GET" });
+      if (!res.ok) throw 0;
+      setServerStatus("online");
+    } catch {
+      setServerStatus("offline");
+    }
+  }
+
+  // Upload multiple files (max 10 MB each)
+  async function uploadFiles() {
+    const input = document.getElementById("fileInput");
+    const files = input.files;
+    if (!files.length) return alert("Pehle kam se kam ek file select karo.");
+
+    // 10 MB limit
+    for (let f of files) {
+      if (f.size > 10 * 1024 * 1024) {
+        alert("File " + f.name + " 10 MB se badi hai.");
+        return;
+      }
+    }
+
+    const formData = new FormData();
+    [...files].forEach(f => formData.append("files", f));
+
+    uploadStatus.textContent = "Uploading...";
+    uploadBtn.disabled = true;
+
+    try {
+      const res = await fetch(API_BASE + "/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      uploadBtn.disabled = false;
+
+      if (!res.ok) throw 0;
+
+      uploadStatus.textContent = "Upload successful!";
+      input.value = "";
+      loadFiles();
+    } catch {
+      uploadStatus.textContent = "Upload failed. Server offline ya slow hai.";
+      setServerStatus("offline");
+      uploadBtn.disabled = false;
+    }
+  }
+
+  async function loadFiles() {
+    try {
+      const res = await fetch(API_BASE + "/files");
+      if (!res.ok) throw 0;
+
+      setServerStatus("online");
+
+      const data = await res.json();
+      filesState = data.files.map(f => ({
+        ...f,
+        clientStart: Date.now()
+      }));
+
+      renderFiles();
+    } catch {
+      setServerStatus("offline");
+    }
+  }
+
+  function renderFiles() {
+    fileList.innerHTML = "";
+
+    if (!filesState.length) {
+      fileList.innerHTML = "<p>Abhi koi active file nahi hai.</p>";
+      return;
+    }
+
+    filesState.forEach(f => {
+      const msLeft = f.remainingMs - (Date.now() - f.clientStart);
+      const sec = Math.max(0, Math.floor(msLeft / 1000));
+      const timer = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+
+      const div = document.createElement("div");
+      div.className = "file-item";
+      div.innerHTML = `
+        <b>${f.originalName}</b><br>
+        Expires in: ${timer}<br><br>
+        <a href="${API_BASE}/download/${f.id}" target="_blank" style="color:#00ff99;">DOWNLOAD</a>
+      `;
+      fileList.appendChild(div);
+    });
+  }
+
+  uploadBtn.addEventListener("click", uploadFiles);
+
+  setInterval(renderFiles, 1000);  // timer update
+  setInterval(loadFiles, 5000);    // server se fresh list
+
+  checkServer();
+  loadFiles();
+</script>
+</body>
+</html>
