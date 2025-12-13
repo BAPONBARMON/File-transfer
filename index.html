@@ -6,147 +6,89 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <style>
-body {
-  margin: 0;
-  background: #000;
-  color: #00ff99;
-  font-family: "Share Tech Mono", monospace;
-  padding: 20px;
+body{
+  margin:0;background:#000;color:#00ff99;
+  font-family:"Share Tech Mono",monospace;padding:20px;
+}
+.box{
+  max-width:600px;margin:auto;border:1px solid #00ff99;
+  padding:18px;border-radius:10px;
+  background:rgba(0,40,0,.4);
 }
 
-.box {
-  max-width: 600px;
-  margin: auto;
-  border: 1px solid #00ff99;
-  padding: 18px;
-  border-radius: 10px;
-  background: rgba(0, 40, 0, 0.4);
+/* STATUS */
+.status-center{text-align:center;margin-bottom:14px;}
+.status-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  background:#002a00;border:1px solid #00ff99;
+  padding:6px 12px;border-radius:999px;
+}
+.dot{width:10px;height:10px;border-radius:50%;}
+.connecting{background:yellow;}
+.online{background:#00ff99;box-shadow:0 0 10px #00ff99;}
+.offline{background:red;}
+.spinner{
+  width:14px;height:14px;border:2px solid rgba(0,255,153,.3);
+  border-top:2px solid #00ff99;border-radius:50%;
+  animation:spin .8s linear infinite;display:none;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* FILE PICKER */
+.file-picker{
+  margin-top:14px;border:1px dashed #00ff99;
+  padding:18px;border-radius:10px;
+  background:rgba(0,20,0,.4);text-align:center;
+}
+.file-picker input{display:none;}
+.choose-btn{
+  display:inline-block;margin-bottom:10px;
+  padding:10px 24px;border-radius:999px;
+  background:linear-gradient(135deg,#00ff99,#00cc66);
+  color:#001a00;font-weight:bold;cursor:pointer;
+  box-shadow:0 0 12px rgba(0,255,153,.6);
+}
+.file-info{font-size:.85rem;color:#9dffcf;}
+
+/* BUTTON */
+button{
+  margin-top:12px;padding:8px 18px;
+  background:#00ff99;color:#001a00;
+  font-weight:bold;border-radius:999px;
+  border:0;cursor:pointer;
 }
 
-/* ===== Server status CENTER ===== */
-.status-center {
-  text-align: center;
-  margin-bottom: 14px;
+/* FILE LIST */
+.file-item{
+  border:1px solid #006600;padding:10px;
+  border-radius:8px;margin-bottom:10px;
+}
+.file-actions{
+  margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;
+}
+.btn-download{
+  padding:6px 14px;border-radius:999px;
+  background:linear-gradient(135deg,#00ff99,#00cc66);
+  color:#001a00;font-weight:bold;text-decoration:none;
+}
+.btn-delete{
+  padding:6px 12px;border-radius:999px;
+  border:1px solid #ff4d4d;
+  background:#330000;color:#ffb3b3;
+  cursor:pointer;
 }
 
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #002a00;
-  border: 1px solid #00ff99;
-  padding: 6px 12px;
-  border-radius: 999px;
+/* POPUP */
+.popup-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.8);
+  display:none;align-items:center;justify-content:center;
+  z-index:9999;
 }
-
-.dot { width:10px; height:10px; border-radius:50%; }
-.connecting { background: yellow; }
-.online { background:#00ff99; box-shadow:0 0 10px #00ff99; }
-.offline { background:red; }
-
-/* Spinner */
-.spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(0,255,153,0.3);
-  border-top: 2px solid #00ff99;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  display: none;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ===== File Picker ===== */
-.file-picker {
-  margin-top: 12px;
-  border: 1px dashed #00ff99;
-  padding: 16px;
-  border-radius: 10px;
-  background: rgba(0,20,0,0.4);
-  text-align: center;
-}
-.file-picker input { display: none; }
-
-.choose-btn {
-  padding: 10px 22px;
-  border-radius: 999px;
-  background: linear-gradient(135deg,#00ff99,#00cc66);
-  color: #001a00;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 0 12px rgba(0,255,153,0.6);
-}
-
-.file-info {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: #9dffcf;
-}
-
-/* Buttons */
-button {
-  margin-top: 12px;
-  padding: 8px 18px;
-  background: #00ff99;
-  color: #001a00;
-  font-weight: bold;
-  border-radius: 999px;
-  border: 0;
-  cursor: pointer;
-}
-
-/* Upload progress */
-.upload-progress {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  display: none;
-}
-.progress-bar {
-  width: 100%;
-  height: 6px;
-  background: #001a00;
-  border-radius: 999px;
-  overflow: hidden;
-  margin-top: 4px;
-  border: 1px solid #00ff99;
-}
-#progressFill {
-  height: 100%;
-  width: 0%;
-  background: #00ff99;
-}
-
-/* Files */
-.file-item {
-  border: 1px solid #006600;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-}
-
-.file-actions {
-  margin-top: 6px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btn-download {
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: linear-gradient(135deg,#00ff99,#00cc66);
-  color:#001a00;
-  font-weight:bold;
-  text-decoration:none;
-}
-
-.btn-delete {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #ff4d4d;
-  background: #330000;
-  color: #ffb3b3;
-  cursor: pointer;
+.popup{
+  background:#001a00;border:1px solid #00ff99;
+  padding:18px;border-radius:10px;
+  text-align:center;box-shadow:0 0 20px #00ff99;
 }
 </style>
 </head>
@@ -175,15 +117,15 @@ button {
 
 <button id="uploadBtn">Upload Files</button>
 
-<div class="upload-progress" id="uploadProgress">
-  <span id="progressText"></span>
-  <div class="progress-bar">
-    <div id="progressFill"></div>
-  </div>
-</div>
-
 <h3>Active Files:</h3>
 <div id="fileList"></div>
+</div>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popup">
+  <div class="popup">
+    <p id="popupText"></p>
+  </div>
 </div>
 
 <p style="text-align:center;margin-top:25px;color:#00ffcc;">
@@ -191,82 +133,88 @@ Powered by <b>BAPON BARMON</b>
 </p>
 
 <script>
-const API_BASE = "https://file-transfer-backend-ifcf.onrender.com";
+const API_BASE="https://file-transfer-backend-ifcf.onrender.com";
+const serverDot=document.getElementById("serverDot");
+const serverSpinner=document.getElementById("serverSpinner");
+const serverText=document.getElementById("serverText");
+const fileInput=document.getElementById("fileInput");
+const fileInfo=document.getElementById("fileInfo");
+const fileList=document.getElementById("fileList");
 
-const serverDot = document.getElementById("serverDot");
-const serverText = document.getElementById("serverText");
-const serverSpinner = document.getElementById("serverSpinner");
-const fileInput = document.getElementById("fileInput");
-const fileInfo = document.getElementById("fileInfo");
-const fileList = document.getElementById("fileList");
-const uploadBtn = document.getElementById("uploadBtn");
+let filesState=[],popupTimer=null;
 
-let filesState = [];
-
-fileInput.onchange = () => {
-  if (!fileInput.files.length) fileInfo.textContent = "No file selected";
-  else if (fileInput.files.length === 1) fileInfo.textContent = fileInput.files[0].name;
-  else fileInfo.textContent = fileInput.files.length + " files selected";
+/* FILE INFO */
+fileInput.onchange=()=>{
+  if(!fileInput.files.length) fileInfo.textContent="No file selected";
+  else if(fileInput.files.length===1) fileInfo.textContent=fileInput.files[0].name;
+  else fileInfo.textContent=fileInput.files.length+" files selected";
 };
 
-function setServerStatus(mode) {
-  serverDot.className = "dot " + mode;
-  serverSpinner.style.display = mode === "connecting" ? "inline-block" : "none";
-  serverText.textContent =
-    mode === "online" ? "Server Connected" :
-    mode === "offline" ? "Server Offline / Sleeping" :
+/* STATUS */
+function setServerStatus(mode){
+  serverDot.className="dot "+mode;
+  serverSpinner.style.display=mode==="connecting"?"inline-block":"none";
+  serverText.textContent=
+    mode==="online"?"Server Connected":
+    mode==="offline"?"Server Offline / Sleeping":
     "Connecting to server…";
 }
 
-async function checkServer() {
+async function checkServer(){
   setServerStatus("connecting");
-  try {
-    const r = await fetch(API_BASE + "/");
-    if (!r.ok) throw 0;
+  try{
+    const r=await fetch(API_BASE+"/");
+    if(!r.ok) throw 0;
     setServerStatus("online");
-  } catch {
-    setServerStatus("offline");
-  }
+  }catch{ setServerStatus("offline"); }
 }
 
-uploadBtn.onclick = () => {
-  if (!fileInput.files.length) return alert("Select file first");
-  const fd = new FormData();
-  [...fileInput.files].forEach(f => fd.append("files", f));
+/* POPUP AUTO CLOSE */
+function showPopup(msg){
+  const p=document.getElementById("popup");
+  document.getElementById("popupText").textContent=msg;
+  p.style.display="flex";
+  if(popupTimer) clearTimeout(popupTimer);
+  popupTimer=setTimeout(()=>p.style.display="none",3000);
+}
 
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", API_BASE + "/upload");
-  xhr.onload = () => loadFiles();
-  xhr.send(fd);
+/* UPLOAD */
+document.getElementById("uploadBtn").onclick=()=>{
+  if(!fileInput.files.length){ showPopup("⚠ Select file first"); return; }
+  const fd=new FormData();
+  [...fileInput.files].forEach(f=>fd.append("files",f));
+  fetch(API_BASE+"/upload",{method:"POST",body:fd})
+    .then(()=>{ showPopup("✅ Upload Successful"); loadFiles(); })
+    .catch(()=>showPopup("❌ Upload Failed"));
 };
 
-async function loadFiles() {
-  try {
-    const r = await fetch(API_BASE + "/files");
-    const d = await r.json();
-    filesState = d.files.map(f => ({...f, start: Date.now()}));
+/* LOAD FILES */
+async function loadFiles(){
+  try{
+    const r=await fetch(API_BASE+"/files");
+    const d=await r.json();
+    filesState=d.files.map(f=>({...f,start:Date.now()}));
     renderFiles();
-  } catch {
-    setServerStatus("offline");
-  }
+  }catch{ setServerStatus("offline"); }
 }
 
-async function deleteFile(id) {
-  if (!confirm("Are you sure you want to delete this file?")) return;
-  await fetch(API_BASE + "/files/" + id, { method: "DELETE" });
+/* DELETE */
+async function deleteFile(id){
+  showPopup("🗑 Deleting file...");
+  await fetch(API_BASE+"/files/"+id,{method:"DELETE"});
   loadFiles();
 }
 
-function renderFiles() {
-  fileList.innerHTML = "";
-  if (!filesState.length) {
-    fileList.innerHTML = "<p>No active files.</p>";
+/* RENDER */
+function renderFiles(){
+  fileList.innerHTML="";
+  if(!filesState.length){
+    fileList.innerHTML="<p>No active files.</p>";
     return;
   }
-
-  filesState.forEach(f => {
-    const sec = Math.max(0, Math.floor((f.remainingMs-(Date.now()-f.start))/1000));
-    fileList.innerHTML += `
+  filesState.forEach(f=>{
+    const sec=Math.max(0,Math.floor((f.remainingMs-(Date.now()-f.start))/1000));
+    fileList.innerHTML+=`
       <div class="file-item">
         <b>${f.originalName}</b><br>
         Expires in ${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}
@@ -274,8 +222,7 @@ function renderFiles() {
           <a class="btn-download" href="${API_BASE}/download/${f.id}" target="_blank">⬇ Download</a>
           <button class="btn-delete" onclick="deleteFile('${f.id}')">🗑 Delete</button>
         </div>
-      </div>
-    `;
+      </div>`;
   });
 }
 
