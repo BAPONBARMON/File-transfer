@@ -41,21 +41,42 @@ body{
   background:rgba(0,20,0,.4);text-align:center;
 }
 .file-picker input{display:none;}
+
+/* 🔧 Smaller + less glow */
 .choose-btn{
   display:inline-block;margin-bottom:10px;
-  padding:10px 24px;border-radius:999px;
+  padding:8px 18px;                 /* smaller */
+  border-radius:999px;
   background:linear-gradient(135deg,#00ff99,#00cc66);
   color:#001a00;font-weight:bold;cursor:pointer;
-  box-shadow:0 0 12px rgba(0,255,153,.6);
+  box-shadow:0 0 6px rgba(0,255,153,.35); /* less glow */
 }
 .file-info{font-size:.85rem;color:#9dffcf;}
 
-/* BUTTON */
-button{
-  margin-top:12px;padding:8px 18px;
+/* 🔧 Bigger Upload button */
+button#uploadBtn{
+  margin-top:14px;
+  padding:12px 28px;               /* bigger */
+  font-size:1rem;
   background:#00ff99;color:#001a00;
   font-weight:bold;border-radius:999px;
   border:0;cursor:pointer;
+}
+
+/* UPLOAD PROGRESS */
+.upload-progress{
+  margin-top:10px;font-size:.85rem;display:none;
+}
+.progress-bar{
+  width:100%;height:6px;background:#001a00;
+  border-radius:999px;overflow:hidden;
+  border:1px solid #00ff99;margin-top:4px;
+}
+#progressFill{
+  height:100%;width:0%;
+  background:#00ff99;
+  box-shadow:0 0 10px #00ff99;
+  transition:width .1s linear;
 }
 
 /* FILE LIST */
@@ -66,11 +87,20 @@ button{
 .file-actions{
   margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;
 }
+
+/* 🔧 Download text perfectly centered */
 .btn-download{
-  padding:6px 14px;border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 14px;
+  border-radius:999px;
   background:linear-gradient(135deg,#00ff99,#00cc66);
-  color:#001a00;font-weight:bold;text-decoration:none;
+  color:#001a00;font-weight:bold;
+  text-decoration:none;
+  line-height:1;                   /* alignment fix */
 }
+
 .btn-delete{
   padding:6px 12px;border-radius:999px;
   border:1px solid #ff4d4d;
@@ -117,6 +147,13 @@ button{
 
 <button id="uploadBtn">Upload Files</button>
 
+<div class="upload-progress" id="uploadProgress">
+  <span id="progressText">Uploading: 0%</span>
+  <div class="progress-bar">
+    <div id="progressFill"></div>
+  </div>
+</div>
+
 <h3>Active Files:</h3>
 <div id="fileList"></div>
 </div>
@@ -140,6 +177,9 @@ const serverText=document.getElementById("serverText");
 const fileInput=document.getElementById("fileInput");
 const fileInfo=document.getElementById("fileInfo");
 const fileList=document.getElementById("fileList");
+const uploadProgress=document.getElementById("uploadProgress");
+const progressFill=document.getElementById("progressFill");
+const progressText=document.getElementById("progressText");
 
 let filesState=[],popupTimer=null;
 
@@ -169,23 +209,51 @@ async function checkServer(){
   }catch{ setServerStatus("offline"); }
 }
 
-/* POPUP AUTO CLOSE */
+/* POPUP – 1.5s AUTO CLOSE */
 function showPopup(msg){
   const p=document.getElementById("popup");
   document.getElementById("popupText").textContent=msg;
   p.style.display="flex";
   if(popupTimer) clearTimeout(popupTimer);
-  popupTimer=setTimeout(()=>p.style.display="none",3000);
+  popupTimer=setTimeout(()=>p.style.display="none",1500); // 🔥 1.5s
 }
 
-/* UPLOAD */
+/* UPLOAD WITH PROGRESS */
 document.getElementById("uploadBtn").onclick=()=>{
   if(!fileInput.files.length){ showPopup("⚠ Select file first"); return; }
+
   const fd=new FormData();
   [...fileInput.files].forEach(f=>fd.append("files",f));
-  fetch(API_BASE+"/upload",{method:"POST",body:fd})
-    .then(()=>{ showPopup("✅ Upload Successful"); loadFiles(); })
-    .catch(()=>showPopup("❌ Upload Failed"));
+
+  uploadProgress.style.display="block";
+  progressFill.style.width="0%";
+  progressText.textContent="Uploading: 0%";
+
+  const xhr=new XMLHttpRequest();
+  xhr.open("POST",API_BASE+"/upload");
+
+  xhr.upload.onprogress=e=>{
+    if(e.lengthComputable){
+      const p=Math.round((e.loaded*100)/e.total);
+      progressFill.style.width=p+"%";
+      progressText.textContent="Uploading: "+p+"%";
+    }
+  };
+
+  xhr.onload=()=>{
+    uploadProgress.style.display="none";
+    showPopup("✅ Upload Successful");
+    fileInput.value="";
+    fileInfo.textContent="No file selected";
+    loadFiles();
+  };
+
+  xhr.onerror=()=>{
+    uploadProgress.style.display="none";
+    showPopup("❌ Upload Failed");
+  };
+
+  xhr.send(fd);
 };
 
 /* LOAD FILES */
