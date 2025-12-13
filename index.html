@@ -1,359 +1,313 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <title> Quick file sharing</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: #00ff99;
-      font-family: "Share Tech Mono", monospace;
-      padding: 20px;
-    }
-    .box {
-      max-width: 600px;
-      margin: auto;
-      border: 1px solid #00ff99;
-      padding: 18px;
-      border-radius: 10px;
-      background: rgba(0, 40, 0, 0.4);
-    }
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #002a00;
-      border: 1px solid #00ff99;
-      padding: 6px 12px;
-      border-radius: 999px;
-      margin-bottom: 14px;
-    }
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-    }
-    .connecting { background: yellow; }
-    .online { background: #00ff99; box-shadow: 0 0 10px #00ff99; }
-    .offline { background: red; }
+<meta charset="UTF-8" />
+<title>Quick File Sharing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    .file-item {
-      border: 1px solid #006600;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
+<style>
+body {
+  margin: 0;
+  background: #000;
+  color: #00ff99;
+  font-family: "Share Tech Mono", monospace;
+  padding: 20px;
+}
 
-    .file-actions {
-      margin-top: 6px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
+.box {
+  max-width: 600px;
+  margin: auto;
+  border: 1px solid #00ff99;
+  padding: 18px;
+  border-radius: 10px;
+  background: rgba(0, 40, 0, 0.4);
+}
 
-    .btn-download {
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #00ff99, #00cc66);
-      color: #001a00 !important;
-      font-weight: bold;
-      text-decoration: none;
-      border: 1px solid #00ff99;
-      box-shadow: 0 0 8px rgba(0, 255, 153, 0.5);
-    }
+/* ===== Server status (CENTER ONLY) ===== */
+.status-center {
+  text-align: center;
+  margin-bottom: 14px;
+}
 
-    .btn-download:hover {
-      filter: brightness(1.2);
-    }
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #002a00;
+  border: 1px solid #00ff99;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
 
-    .btn-delete {
-      padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid #ff4d4d;
-      background: #330000;
-      color: #ffb3b3;
-      font-size: 0.85rem;
-      cursor: pointer;
-    }
+.dot { width:10px; height:10px; border-radius:50%; }
+.connecting { background: yellow; }
+.online { background:#00ff99; box-shadow:0 0 10px #00ff99; }
+.offline { background:red; }
 
-    .btn-delete:hover {
-      filter: brightness(1.1);
-    }
+/* Spinner */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0,255,153,0.3);
+  border-top: 2px solid #00ff99;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-    button {
-      padding: 8px 18px;
-      background: #00ff99;
-      color: #001a00;
-      font-weight: bold;
-      border-radius: 999px;
-      border: 0;
-      cursor: pointer;
-    }
-    button:hover { filter: brightness(1.2); }
+/* ===== Stylish File Picker ===== */
+.file-picker {
+  margin-top: 12px;
+  border: 1px dashed #00ff99;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(0,20,0,0.4);
+  text-align: center;
+}
+.file-picker input { display: none; }
 
-    /* Upload progress UI */
-    .upload-progress {
-      margin-top: 8px;
-      font-size: 0.8rem;
-    }
-    .progress-bar {
-      width: 100%;
-      height: 6px;
-      background: #001a00;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 4px;
-      border: 1px solid #00ff99;
-    }
-    #progressFill {
-      height: 100%;
-      width: 0%;
-      background: #00ff99;
-      box-shadow: 0 0 10px #00ff99;
-      transition: width 0.1s linear;
-    }
-  </style>
+.choose-btn {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg,#00ff99,#00cc66);
+  color: #001a00;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(0,255,153,0.6);
+}
+.choose-btn:hover { filter: brightness(1.2); }
+
+.file-info {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #9dffcf;
+}
+
+/* ===== Buttons ===== */
+button {
+  margin-top: 12px;
+  padding: 8px 18px;
+  background: #00ff99;
+  color: #001a00;
+  font-weight: bold;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.2); }
+
+/* ===== Upload progress ===== */
+.upload-progress {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  display: none;
+}
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #001a00;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+  border: 1px solid #00ff99;
+}
+#progressFill {
+  height: 100%;
+  width: 0%;
+  background: #00ff99;
+  box-shadow: 0 0 10px #00ff99;
+  transition: width 0.1s linear;
+}
+
+/* ===== Files ===== */
+.file-item {
+  border: 1px solid #006600;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.file-actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-download {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg,#00ff99,#00cc66);
+  color:#001a00;
+  font-weight:bold;
+  text-decoration:none;
+}
+.btn-delete {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #ff4d4d;
+  background: #330000;
+  color: #ffb3b3;
+  cursor: pointer;
+}
+</style>
 </head>
+
 <body>
-  <div class="box">
-    <h2> Quick file sharing</h2>
-    <p>Note - Uploaded files will be automatically deleted after 5 minutes.</p>
 
-    <div id="serverStatus" class="status-pill">
-      <div id="serverDot" class="dot connecting"></div>
-      <span id="serverText">Connecting to server…</span>
-    </div>
+<div class="box">
+<h2>Quick File Sharing</h2>
+<p>Uploaded files auto-delete after 5 minutes.</p>
 
-    <!-- Upload Section -->
-    <input type="file" id="fileInput" multiple />
-    <br /><br />
-    <button id="uploadBtn">Upload Files</button>
-    <p id="uploadStatus"></p>
-
-    <!-- LIVE UPLOAD PROGRESS (default: hidden) -->
-    <div class="upload-progress" id="uploadProgress" style="display:none;">
-      <span id="progressText"></span>
-      <div class="progress-bar">
-        <div id="progressFill"></div>
-      </div>
-    </div>
-
-    <h3 style="margin-top:18px;">Active Files:</h3>
-    <div id="fileList"></div>
+<!-- ✅ CENTER ALIGNED STATUS -->
+<div class="status-center">
+  <div class="status-pill">
+    <div id="serverDot" class="dot connecting"></div>
+    <div id="serverSpinner" class="spinner"></div>
+    <span id="serverText">Connecting to server…</span>
   </div>
+</div>
 
-  <!-- Footer -->
-  <p style="
-    text-align:center;
-    margin-top:25px;
-    color:#00ffcc;
-    font-size:1rem;
-    text-shadow:0 0 8px #00ff99;">
-     Powered by <b>BAPON BARMON</b> 
-  </p>
+<div class="file-picker">
+  <label class="choose-btn">
+    📂 Choose Files
+    <input type="file" id="fileInput" multiple />
+  </label>
+  <div id="fileInfo" class="file-info">No file selected</div>
+</div>
+
+<button id="uploadBtn">Upload Files</button>
+<p id="uploadStatus"></p>
+
+<div class="upload-progress" id="uploadProgress">
+  <span id="progressText"></span>
+  <div class="progress-bar">
+    <div id="progressFill"></div>
+  </div>
+</div>
+
+<h3>Active Files:</h3>
+<div id="fileList"></div>
+</div>
+
+<p style="text-align:center;margin-top:25px;color:#00ffcc;">
+Powered by <b>BAPON BARMON</b>
+</p>
 
 <script>
-  // ← yahi tumhara Render backend URL hai
-  const API_BASE = "https://file-transfer-backend-ifcf.onrender.com";
+const API_BASE = "https://file-transfer-backend-ifcf.onrender.com";
 
-  const serverDot = document.getElementById("serverDot");
-  const serverText = document.getElementById("serverText");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const uploadStatus = document.getElementById("uploadStatus");
-  const fileList = document.getElementById("fileList");
-  const progressText = document.getElementById("progressText");
-  const progressFill = document.getElementById("progressFill");
-  const uploadProgressBox = document.getElementById("uploadProgress");
+const serverDot = document.getElementById("serverDot");
+const serverText = document.getElementById("serverText");
+const serverSpinner = document.getElementById("serverSpinner");
 
-  let filesState = [];
+const fileInput = document.getElementById("fileInput");
+const fileInfo = document.getElementById("fileInfo");
+const uploadBtn = document.getElementById("uploadBtn");
+const fileList = document.getElementById("fileList");
 
-  function setServerStatus(mode) {
-    serverDot.classList.remove("connecting", "online", "offline");
-    if (mode === "connecting") {
-      serverDot.classList.add("connecting");
-      serverText.textContent = "Connecting to server…";
-    } else if (mode === "online") {
-      serverDot.classList.add("online");
-      serverText.textContent = "Server Connected";
-    } else {
-      serverDot.classList.add("offline");
-      serverText.textContent = "Server Offline / Sleeping";
-    }
+const progressText = document.getElementById("progressText");
+const progressFill = document.getElementById("progressFill");
+const uploadProgressBox = document.getElementById("uploadProgress");
+
+let filesState = [];
+
+/* File info text */
+fileInput.addEventListener("change", () => {
+  if (!fileInput.files.length) fileInfo.textContent = "No file selected";
+  else if (fileInput.files.length === 1) fileInfo.textContent = fileInput.files[0].name;
+  else fileInfo.textContent = fileInput.files.length + " files selected";
+});
+
+function setServerStatus(mode) {
+  serverDot.className = "dot " + mode;
+  if (mode === "connecting") {
+    serverText.textContent = "Connecting to server…";
+    serverSpinner.style.display = "inline-block";
+  } else if (mode === "online") {
+    serverText.textContent = "Server Connected";
+    serverSpinner.style.display = "none";
+  } else {
+    serverText.textContent = "Server Offline / Sleeping";
+    serverSpinner.style.display = "none";
+  }
+}
+
+async function checkServer() {
+  setServerStatus("connecting");
+  try {
+    const r = await fetch(API_BASE + "/");
+    if (!r.ok) throw 0;
+    setServerStatus("online");
+  } catch {
+    setServerStatus("offline");
+  }
+}
+
+uploadBtn.onclick = () => {
+  if (!fileInput.files.length) return alert("Select file first");
+
+  const fd = new FormData();
+  [...fileInput.files].forEach(f => fd.append("files", f));
+
+  uploadProgressBox.style.display = "block";
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", API_BASE + "/upload");
+
+  xhr.upload.onprogress = e => {
+    const p = Math.round(e.loaded * 100 / e.total);
+    progressFill.style.width = p + "%";
+    progressText.textContent = "Uploading: " + p + "%";
+  };
+
+  xhr.onload = () => {
+    uploadProgressBox.style.display = "none";
+    fileInput.value = "";
+    fileInfo.textContent = "No file selected";
+    loadFiles();
+  };
+
+  xhr.send(fd);
+};
+
+async function loadFiles() {
+  try {
+    const r = await fetch(API_BASE + "/files");
+    const d = await r.json();
+    filesState = d.files.map(f => ({...f, start: Date.now()}));
+    renderFiles();
+  } catch {
+    setServerStatus("offline");
+  }
+}
+
+function renderFiles() {
+  fileList.innerHTML = "";
+  if (!filesState.length) {
+    fileList.innerHTML = "<p>No active files.</p>";
+    return;
   }
 
-  async function checkServer() {
-    setServerStatus("connecting");
-    try {
-      const res = await fetch(API_BASE + "/", { method: "GET" });
-      if (!res.ok) throw 0;
-      setServerStatus("online");
-    } catch {
-      setServerStatus("offline");
-    }
-  }
-
-  // Upload multiple files (max 10 MB each) with live progress (XHR)
-  async function uploadFiles() {
-    const input = document.getElementById("fileInput");
-    const files = input.files;
-    if (!files.length) {
-      alert(" First choose a file.");
-      return;
-    }
-
-    // 10 MB limit
-    for (let f of files) {
-      if (f.size > 10 * 1024 * 1024) {
-        alert("File " + f.name + "You can upload up to 10 MB");
-        return;
-      }
-    }
-
-    const formData = new FormData();
-    [...files].forEach(f => formData.append("files", f));
-
-    uploadStatus.textContent = "Uploading...";
-    uploadBtn.disabled = true;
-
-    // Progress UI show & reset
-    uploadProgressBox.style.display = "block";
-    progressFill.style.width = "0%";
-    progressText.textContent = "Uploading: 0%";
-
-    // XMLHttpRequest for progress
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", API_BASE + "/upload", true);
-
-    xhr.upload.onprogress = function (event) {
-      if (event.lengthComputable) {
-        const percent = Math.round((event.loaded * 100) / event.total);
-        progressFill.style.width = percent + "%";
-        progressText.textContent = "Uploading: " + percent + "%";
-      }
-    };
-
-    xhr.onload = function () {
-      uploadBtn.disabled = false;
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        uploadStatus.textContent = "Upload successful!";
-        input.value = "";
-        progressText.textContent = "Upload complete.";
-
-        try {
-          loadFiles();
-          setServerStatus("online");
-        } catch {}
-
-        // Thodi der baad progress UI hide
-        setTimeout(() => {
-          uploadProgressBox.style.display = "none";
-          progressFill.style.width = "0%";
-          progressText.textContent = "";
-        }, 1500);
-      } else {
-        uploadStatus.textContent = "Upload failed. Server or network issue.";
-        setServerStatus("offline");
-        progressText.textContent = "Upload failed.";
-        progressFill.style.width = "0%";
-        setTimeout(() => {
-          uploadProgressBox.style.display = "none";
-          progressText.textContent = "";
-        }, 1500);
-      }
-    };
-
-    xhr.onerror = function () {
-      uploadBtn.disabled = false;
-      uploadStatus.textContent = "Upload failed. Network error.";
-      setServerStatus("offline");
-      progressText.textContent = "Upload failed.";
-      progressFill.style.width = "0%";
-      setTimeout(() => {
-        uploadProgressBox.style.display = "none";
-        progressText.textContent = "";
-      }, 1500);
-    };
-
-    xhr.send(formData);
-  }
-
-  async function loadFiles() {
-    try {
-      const res = await fetch(API_BASE + "/files");
-      if (!res.ok) throw 0;
-
-      setServerStatus("online");
-
-      const data = await res.json();
-      filesState = data.files.map(f => ({
-        ...f,
-        clientStart: Date.now()
-      }));
-
-      renderFiles();
-    } catch {
-      setServerStatus("offline");
-    }
-  }
-
-  function renderFiles() {
-    fileList.innerHTML = "";
-
-    if (!filesState.length) {
-      fileList.innerHTML = "<p>No active file available for Download.</p>";
-      return;
-    }
-
-    filesState.forEach(f => {
-      const msLeft = f.remainingMs - (Date.now() - f.clientStart);
-      const sec = Math.max(0, Math.floor(msLeft / 1000));
-      const timer = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
-
-      const div = document.createElement("div");
-      div.className = "file-item";
-      div.innerHTML = `
+  filesState.forEach(f => {
+    const sec = Math.max(0, Math.floor((f.remainingMs-(Date.now()-f.start))/1000));
+    fileList.innerHTML += `
+      <div class="file-item">
         <b>${f.originalName}</b><br>
-        Expires in: ${timer}<br><br>
+        Expires in ${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}
         <div class="file-actions">
-          <a class="btn-download" href="${API_BASE}/download/${f.id}" target="_blank">
-            ⬇ Download
-          </a>
-          <button class="btn-delete" onclick="deleteFileNow('${f.id}')">
-            🗑 Delete
-          </button>
+          <a class="btn-download" href="${API_BASE}/download/${f.id}" target="_blank">⬇ Download</a>
         </div>
-      `;
-      fileList.appendChild(div);
-    });
-  }
+      </div>
+    `;
+  });
+}
 
-  // Manual delete button handler
-  async function deleteFileNow(id) {
-    const sure = confirm(" Are you want delete this file ?");
-    if (!sure) return;
-
-    try {
-      const res = await fetch(API_BASE + "/files/" + id, {
-        method: "DELETE"
-      });
-      if (!res.ok) throw 0;
-      await loadFiles();
-    } catch {
-      alert("Delete fail. Server offline or network issue.");
-    }
-  }
-
-  uploadBtn.addEventListener("click", uploadFiles);
-
-  setInterval(renderFiles, 1000);  // timer update
-  setInterval(loadFiles, 5000);    // server se fresh list
-
-  checkServer();
-  loadFiles();
+setInterval(renderFiles,1000);
+setInterval(loadFiles,5000);
+checkServer();
+loadFiles();
 </script>
+
 </body>
 </html>
