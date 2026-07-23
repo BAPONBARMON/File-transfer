@@ -1,304 +1,743 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Quick File Sharing</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>File Sharing</title>
+  <!-- PeerJS CDN -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg-color: #030a03;
+      --card-bg: #0a150a;
+      --primary-green: #00ff66;
+      --dark-green: #00220d;
+      --border-green: #008833;
+      --alert-red: #ff3333;
+      --text-dim: #00cc55;
+    }
 
-<style>
-body{
-  margin:0;background:#000;color:#00ff99;
-  font-family:"Share Tech Mono",monospace;padding:20px;
-}
-.box{
-  max-width:600px;margin:auto;border:1px solid #00ff99;
-  padding:18px;border-radius:10px;
-  background:rgba(0,40,0,.4);
-}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', Courier, monospace;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-/* STATUS */
-.status-center{text-align:center;margin-bottom:14px;}
-.status-pill{
-  display:inline-flex;align-items:center;gap:8px;
-  background:#002a00;border:1px solid #00ff99;
-  padding:6px 12px;border-radius:999px;
-}
-.dot{width:10px;height:10px;border-radius:50%;}
-.connecting{background:yellow;}
-.online{background:#00ff99;box-shadow:0 0 10px #00ff99;}
-.offline{background:red;}
-.spinner{
-  width:14px;height:14px;border:2px solid rgba(0,255,153,.3);
-  border-top:2px solid #00ff99;border-radius:50%;
-  animation:spin .8s linear infinite;display:none;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
+    html, body {
+      min-height: 100vh;
+      width: 100%;
+      background-color: var(--bg-color);
+      color: var(--primary-green);
+    }
 
-/* FILE PICKER */
-.file-picker{
-  margin-top:14px;border:1px dashed #00ff99;
-  padding:18px;border-radius:10px;
-  background:rgba(0,20,0,.4);text-align:center;
-}
-.file-picker input{display:none;}
+    /* Initial state: 30% from the top */
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 12px;
+      padding-top: 30vh;
+      overflow-x: hidden;
+      transition: padding-top 0.3s ease;
+    }
 
-/* 🔧 Smaller + less glow */
-.choose-btn{
-  display:inline-block;margin-bottom:10px;
-  padding:8px 18px;                 /* smaller */
-  border-radius:999px;
-  background:linear-gradient(135deg,#00ff99,#00cc66);
-  color:#001a00;font-weight:bold;cursor:pointer;
-  box-shadow:0 0 6px rgba(0,255,153,.35); /* less glow */
-}
-.file-info{font-size:.85rem;color:#9dffcf;}
+    /* Active state when connected: Fits from top */
+    body.is-connected {
+      padding-top: 12px !important;
+    }
 
-/* 🔧 Bigger Upload button */
-button#uploadBtn{
-  margin-top:14px;
-  padding:12px 28px;               /* bigger */
-  font-size:1rem;
-  background:#00ff99;color:#001a00;
-  font-weight:bold;border-radius:999px;
-  border:0;cursor:pointer;
-}
+    .container {
+      width: 100%;
+      max-width: 700px;
+      background: var(--card-bg);
+      border: 1px solid var(--primary-green);
+      padding: 20px;
+      border-radius: 8px;
+    }
 
-/* UPLOAD PROGRESS */
-.upload-progress{
-  margin-top:10px;font-size:.85rem;display:none;
-}
-.progress-bar{
-  width:100%;height:6px;background:#001a00;
-  border-radius:999px;overflow:hidden;
-  border:1px solid #00ff99;margin-top:4px;
-}
-#progressFill{
-  height:100%;width:0%;
-  background:#00ff99;
-  box-shadow:0 0 10px #00ff99;
-  transition:width .1s linear;
-}
+    h1 {
+      text-align: center;
+      font-size: clamp(1.1rem, 4vw, 1.4rem);
+      margin-bottom: 15px;
+      text-shadow: none;
+      border-bottom: 1px dashed var(--primary-green);
+      padding-bottom: 10px;
+      word-break: break-word;
+    }
 
-/* FILE LIST */
-.file-item{
-  border:1px solid #006600;padding:10px;
-  border-radius:8px;margin-bottom:10px;
-}
-.file-actions{
-  margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;
-}
+    .status-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #051505;
+      padding: 12px 16px;
+      border: 1px solid var(--primary-green);
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
 
-/* 🔧 Download text perfectly centered */
-.btn-download{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:6px 14px;
-  border-radius:999px;
-  background:linear-gradient(135deg,#00ff99,#00cc66);
-  color:#001a00;font-weight:bold;
-  text-decoration:none;
-  line-height:1;                   /* alignment fix */
-}
+    .code-box {
+      font-size: clamp(1.1rem, 3.8vw, 1.3rem);
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #ffffff;
+      text-shadow: none;
+    }
 
-.btn-delete{
-  padding:6px 12px;border-radius:999px;
-  border:1px solid #ff4d4d;
-  background:#330000;color:#ffb3b3;
-  cursor:pointer;
-}
+    .timer-box {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #ffffff;
+      background: #000;
+      padding: 4px 8px;
+      border: 1px solid var(--primary-green);
+      border-radius: 4px;
+      display: none;
+    }
 
-/* POPUP */
-.popup-overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.8);
-  display:none;align-items:center;justify-content:center;
-  z-index:9999;
-}
-.popup{
-  background:#001a00;border:1px solid #00ff99;
-  padding:18px;border-radius:10px;
-  text-align:center;box-shadow:0 0 20px #00ff99;
-}
-</style>
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      background: #000;
+      border: 1px solid var(--primary-green);
+      color: var(--primary-green);
+      padding: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      text-align: center;
+      border-radius: 4px;
+    }
+
+    button {
+      background: var(--dark-green);
+      color: var(--primary-green);
+      border: 1px solid var(--primary-green);
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) {
+      background: #003d18;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.btn-red {
+      border-color: var(--alert-red);
+      color: var(--alert-red);
+      background: #200;
+    }
+
+    button.btn-red:hover {
+      background: var(--alert-red);
+      color: #fff;
+    }
+
+    .error-msg {
+      color: var(--alert-red);
+      font-size: 0.8rem;
+      text-align: center;
+      margin-bottom: 12px;
+      display: none;
+      word-break: break-word;
+    }
+
+    .workspace {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .connection-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #000;
+      padding: 10px;
+      border: 1px solid var(--primary-green);
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+
+    .file-input-wrapper {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .custom-file-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: 1px solid var(--primary-green);
+      background: #000;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: bold;
+      color: var(--primary-green);
+      transition: background 0.2s;
+    }
+
+    .custom-file-btn:hover {
+      background: var(--dark-green);
+    }
+
+    .custom-file-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: var(--primary-green);
+    }
+
+    .file-canvas-box {
+      margin: 10px 0 8px 0;
+      background: #000;
+      border: 1px dashed var(--border-green);
+      border-radius: 5px;
+      padding: 8px;
+      min-height: 45px;
+      max-height: 85px;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    .file-canvas-box div {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      padding: 2px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dual-boxes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+      width: 100%;
+    }
+
+    @media (max-width: 580px) {
+      .dual-boxes {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .box-panel {
+      background: #000;
+      border: 1px solid var(--border-green);
+      border-radius: 5px;
+      padding: 10px;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .box-panel h3 {
+      font-size: 0.82rem;
+      border-bottom: 1px solid var(--border-green);
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+      color: var(--primary-green);
+    }
+
+    .box-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 0;
+    }
+
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      background: var(--dark-green);
+      padding: 6px 8px;
+      border: 1px solid var(--border-green);
+      margin-bottom: 6px;
+      font-size: 0.75rem;
+      border-radius: 3px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .file-name-text {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-item a, .file-status-tag {
+      color: var(--primary-green);
+      text-decoration: none;
+      border: 1px solid var(--primary-green);
+      padding: 2px 6px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+    }
+
+    .file-item a:hover {
+      background: var(--primary-green);
+      color: #000;
+    }
+
+    .progress-container {
+      margin-top: 12px;
+      padding: 8px;
+      background: #000;
+      border: 1px dashed var(--primary-green);
+      border-radius: 4px;
+      display: none;
+    }
+
+    .spinner {
+      border: 3px solid var(--dark-green);
+      border-top: 3px solid var(--primary-green);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 5px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 10px;
+      background: #051005;
+      border: 1px solid var(--primary-green);
+      margin-top: 5px;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary-green);
+      transition: width 0.1s;
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="box">
-<h2>Quick File Sharing</h2>
-<p>Uploaded files auto-delete after 5 minutes.</p>
+  <div class="container">
+    <h1>File Sharing Tool</h1>
 
-<div class="status-center">
-  <div class="status-pill">
-    <div id="serverDot" class="dot connecting"></div>
-    <div id="serverSpinner" class="spinner"></div>
-    <span id="serverText">Connecting to server…</span>
-  </div>
-</div>
+    <!-- HEADER PANEL FOR YOUR CODE -->
+    <div class="status-panel">
+      <div style="color: #ffffff;">YOUR CODE: <span id="myCode" class="code-box">GENERATING...</span></div>
+      <div id="statusText">[INITIALIZING...]</div>
+    </div>
 
-<div class="file-picker">
-  <label class="choose-btn">
-    📂 Choose Files
-    <input type="file" id="fileInput" multiple />
-  </label>
-  <div id="fileInfo" class="file-info">No file selected</div>
-</div>
+    <!-- Connection Input Block -->
+    <div id="connectForm">
+      <div class="input-group">
+        <input type="text" id="targetCode" placeholder="ENTER 4-DIGIT CODE" maxlength="4" disabled>
+        <button id="connectBtn" onclick="connectToPeer()" disabled>CONNECT</button>
+      </div>
+      <div id="errorMsg" class="error-msg">> ERROR: CONNECTION FAILED!</div>
+    </div>
 
-<button id="uploadBtn">Upload Files</button>
-
-<div class="upload-progress" id="uploadProgress">
-  <span id="progressText">Uploading: 0%</span>
-  <div class="progress-bar">
-    <div id="progressFill"></div>
-  </div>
-</div>
-
-<h3>Active Files:</h3>
-<div id="fileList"></div>
-</div>
-
-<!-- POPUP -->
-<div class="popup-overlay" id="popup">
-  <div class="popup">
-    <p id="popupText"></p>
-  </div>
-</div>
-
-<p style="text-align:center;margin-top:25px;color:#00ffcc;">
-Powered by <b>BAPON BARMON</b>
-</p>
-
-<script>
-const API_BASE="https://file-transfer-backend-ifcf.onrender.com";
-const serverDot=document.getElementById("serverDot");
-const serverSpinner=document.getElementById("serverSpinner");
-const serverText=document.getElementById("serverText");
-const fileInput=document.getElementById("fileInput");
-const fileInfo=document.getElementById("fileInfo");
-const fileList=document.getElementById("fileList");
-const uploadProgress=document.getElementById("uploadProgress");
-const progressFill=document.getElementById("progressFill");
-const progressText=document.getElementById("progressText");
-
-let filesState=[],popupTimer=null;
-
-/* FILE INFO */
-fileInput.onchange=()=>{
-  if(!fileInput.files.length) fileInfo.textContent="No file selected";
-  else if(fileInput.files.length===1) fileInfo.textContent=fileInput.files[0].name;
-  else fileInfo.textContent=fileInput.files.length+" files selected";
-};
-
-/* STATUS */
-function setServerStatus(mode){
-  serverDot.className="dot "+mode;
-  serverSpinner.style.display=mode==="connecting"?"inline-block":"none";
-  serverText.textContent=
-    mode==="online"?"Server Connected":
-    mode==="offline"?"Server Offline / Sleeping":
-    "Connecting to server…";
-}
-
-async function checkServer(){
-  setServerStatus("connecting");
-  try{
-    const r=await fetch(API_BASE+"/");
-    if(!r.ok) throw 0;
-    setServerStatus("online");
-  }catch{ setServerStatus("offline"); }
-}
-
-/* POPUP – 1.5s AUTO CLOSE */
-function showPopup(msg){
-  const p=document.getElementById("popup");
-  document.getElementById("popupText").textContent=msg;
-  p.style.display="flex";
-  if(popupTimer) clearTimeout(popupTimer);
-  popupTimer=setTimeout(()=>p.style.display="none",1500); // 🔥 1.5s
-}
-
-/* UPLOAD WITH PROGRESS */
-document.getElementById("uploadBtn").onclick=()=>{
-  if(!fileInput.files.length){ showPopup("⚠ Select file first"); return; }
-
-  const fd=new FormData();
-  [...fileInput.files].forEach(f=>fd.append("files",f));
-
-  uploadProgress.style.display="block";
-  progressFill.style.width="0%";
-  progressText.textContent="Uploading: 0%";
-
-  const xhr=new XMLHttpRequest();
-  xhr.open("POST",API_BASE+"/upload");
-
-  xhr.upload.onprogress=e=>{
-    if(e.lengthComputable){
-      const p=Math.round((e.loaded*100)/e.total);
-      progressFill.style.width=p+"%";
-      progressText.textContent="Uploading: "+p+"%";
-    }
-  };
-
-  xhr.onload=()=>{
-    uploadProgress.style.display="none";
-    showPopup("✅ Upload Successful");
-    fileInput.value="";
-    fileInfo.textContent="No file selected";
-    loadFiles();
-  };
-
-  xhr.onerror=()=>{
-    uploadProgress.style.display="none";
-    showPopup("❌ Upload Failed");
-  };
-
-  xhr.send(fd);
-};
-
-/* LOAD FILES */
-async function loadFiles(){
-  try{
-    const r=await fetch(API_BASE+"/files");
-    const d=await r.json();
-    filesState=d.files.map(f=>({...f,start:Date.now()}));
-    renderFiles();
-  }catch{ setServerStatus("offline"); }
-}
-
-/* DELETE */
-async function deleteFile(id){
-  showPopup("🗑 Deleting file...");
-  await fetch(API_BASE+"/files/"+id,{method:"DELETE"});
-  loadFiles();
-}
-
-/* RENDER */
-function renderFiles(){
-  fileList.innerHTML="";
-  if(!filesState.length){
-    fileList.innerHTML="<p>No active files.</p>";
-    return;
-  }
-  filesState.forEach(f=>{
-    const sec=Math.max(0,Math.floor((f.remainingMs-(Date.now()-f.start))/1000));
-    fileList.innerHTML+=`
-      <div class="file-item">
-        <b>${f.originalName}</b><br>
-        Expires in ${Math.floor(sec/60)}:${String(sec%60).padStart(2,"0")}
-        <div class="file-actions">
-          <a class="btn-download" href="${API_BASE}/download/${f.id}" target="_blank">⬇ Download</a>
-          <button class="btn-delete" onclick="deleteFile('${f.id}')">🗑 Delete</button>
+    <!-- Connected Active Workspace -->
+    <div id="workspace" class="workspace">
+      <div class="connection-header">
+        <div>
+          <span style="color: var(--primary-green); font-weight: bold; font-size: 0.85rem;">[CONNECTED]</span>
+          <span id="connectedInfo" style="margin-left: 5px; color: #fff; font-size: 0.85rem;">----</span>
         </div>
-      </div>`;
-  });
-}
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div id="sessionTimer" class="timer-box">00:00:00</div>
+          <button class="btn-red" onclick="disconnectPeer()">DISCONNECT</button>
+        </div>
+      </div>
 
-setInterval(renderFiles,1000);
-setInterval(loadFiles,5000);
-checkServer();
-loadFiles();
-</script>
+      <div class="file-input-wrapper">
+        <label for="fileInput" class="custom-file-btn">
+          <svg viewBox="0 0 24 24">
+            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+          </svg>
+          SELECT FILES
+        </label>
+        <input type="file" id="fileInput" multiple onchange="updateSelectedFiles()">
 
+        <!-- CANVAS BOX FOR SELECTED FILE LIST -->
+        <div id="fileCanvasBox" class="file-canvas-box">
+          <div style="color: #006622;">> No files selected...</div>
+        </div>
+
+        <button id="sendBtn" onclick="handleSendOrCancel()" style="width: 100%;">SEND FILES</button>
+      </div>
+
+      <!-- Upload/Sending Progress Spinner -->
+      <div id="progressContainer" class="progress-container">
+        <div class="spinner"></div>
+        <div id="progressText" style="text-align: center; font-size: 0.8rem;">SENDING: 0%</div>
+        <div class="progress-bar-bg">
+          <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Dual File Transfer History Boxes -->
+      <div class="dual-boxes">
+        <!-- Sent Files Panel -->
+        <div class="box-panel">
+          <h3>> SENT FILES</h3>
+          <div id="sentFilesBox" class="box-content">
+            <p style="font-size: 0.75rem; color: var(--text-dim);">No files sent yet...</p>
+          </div>
+        </div>
+
+        <!-- Received Files Panel -->
+        <div class="box-panel">
+          <h3>> RECEIVED FILES</h3>
+          <div id="receivedFilesBox" class="box-content">
+            <p style="font-size: 0.75rem; color: var(--text-dim);">No files received yet...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let peer = null;
+    let conn = null;
+    let mySessionCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+    let timerInterval = null;
+    let totalSeconds = 0;
+    let isSending = false;
+    let cancelRequested = false;
+
+    const myCodeBox = document.getElementById('myCode');
+    const statusText = document.getElementById('statusText');
+    const connectBtn = document.getElementById('connectBtn');
+    const targetInput = document.getElementById('targetCode');
+
+    initPeer();
+
+    function initPeer() {
+      peer = new Peer(`hacker-share-${mySessionCode}`);
+
+      peer.on('open', (id) => {
+        myCodeBox.innerText = mySessionCode;
+        statusText.innerText = '[READY TO PAIR]';
+        statusText.style.color = 'var(--primary-green)';
+
+        targetInput.disabled = false;
+        connectBtn.disabled = false;
+      });
+
+      peer.on('connection', (connection) => {
+        conn = connection;
+        setupConnectionEvents();
+      });
+
+      peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') {
+          mySessionCode = Math.floor(1000 + Math.random() * 9000).toString();
+          initPeer();
+        } else {
+          showError("NETWORK ERROR: " + err.type);
+        }
+      });
+    }
+
+    function showError(msg) {
+      const err = document.getElementById('errorMsg');
+      err.innerText = '> ' + msg;
+      err.style.display = 'block';
+      setTimeout(() => { err.style.display = 'none'; }, 4000);
+    }
+
+    function connectToPeer() {
+      const targetCode = targetInput.value.trim();
+
+      if (targetCode.length !== 4 || isNaN(targetCode)) {
+        showError("ENTER A VALID 4-DIGIT CODE!");
+        return;
+      }
+      if (targetCode === mySessionCode) {
+        showError("CANNOT PAIR WITH YOUR OWN CODE!");
+        return;
+      }
+
+      connectBtn.innerText = "CONNECTING...";
+      connectBtn.disabled = true;
+
+      conn = peer.connect(`hacker-share-${targetCode}`);
+      setupConnectionEvents();
+    }
+
+    function setupConnectionEvents() {
+      conn.on('open', () => {
+        document.getElementById('connectForm').style.display = 'none';
+        document.getElementById('workspace').style.display = 'block';
+        
+        document.body.classList.add('is-connected');
+
+        const otherCode = conn.peer.replace('hacker-share-', '');
+        document.getElementById('connectedInfo').innerText = `PEER: ${otherCode}`;
+        statusText.innerText = '[CONNECTED]';
+        statusText.style.color = '#00ff66';
+
+        startTimer();
+      });
+
+      conn.on('data', (data) => {
+        if (data.type === 'file') {
+          renderReceivedFile(data);
+        }
+      });
+
+      conn.on('close', () => {
+        disconnectPeer();
+      });
+
+      conn.on('error', () => {
+        showError("PEER CONNECTION FAILED!");
+        disconnectPeer();
+      });
+    }
+
+    function startTimer() {
+      totalSeconds = 0;
+      const timerDisplay = document.getElementById('sessionTimer');
+      timerDisplay.style.display = 'block';
+
+      timerInterval = setInterval(() => {
+        totalSeconds++;
+        const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+        const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+        const secs = String(totalSeconds % 60).padStart(2, '0');
+        timerDisplay.innerText = `${hrs}:${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      const timerDisplay = document.getElementById('sessionTimer');
+      timerDisplay.style.display = 'none';
+      timerDisplay.innerText = '00:00:00';
+    }
+
+    function disconnectPeer() {
+      if (conn) {
+        conn.close();
+      }
+      conn = null;
+      stopTimer();
+
+      document.body.classList.remove('is-connected');
+
+      document.getElementById('connectForm').style.display = 'block';
+      document.getElementById('workspace').style.display = 'none';
+      statusText.innerText = '[READY TO PAIR]';
+      statusText.style.color = 'var(--primary-green)';
+      targetInput.value = '';
+      connectBtn.innerText = "CONNECT";
+      connectBtn.disabled = false;
+    }
+
+    function updateSelectedFiles() {
+      const input = document.getElementById('fileInput');
+      const box = document.getElementById('fileCanvasBox');
+      box.innerHTML = '';
+      if(input.files.length === 0) {
+        box.innerHTML = '<div style="color: #006622;">> No files selected...</div>';
+        return;
+      }
+      for (let i = 0; i < input.files.length; i++) {
+        box.innerHTML += `<div>> ${input.files[i].name} (${(input.files[i].size / (1024*1024)).toFixed(2)} MB)</div>`;
+      }
+    }
+
+    function handleSendOrCancel() {
+      if (isSending) {
+        // Immediate Cancel Trigger
+        cancelRequested = true;
+        const progressText = document.getElementById('progressText');
+        progressText.innerText = "CANCELING...";
+      } else {
+        sendFiles();
+      }
+    }
+
+    // Helper function for asynchronous delay to allow UI clicks
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function sendFiles() {
+      const input = document.getElementById('fileInput');
+      if (!input.files.length) {
+        alert("Select at least one file!");
+        return;
+      }
+
+      const files = Array.from(input.files);
+      const progressContainer = document.getElementById('progressContainer');
+      const progressText = document.getElementById('progressText');
+      const progressBarFill = document.getElementById('progressBarFill');
+      const sendBtn = document.getElementById('sendBtn');
+
+      isSending = true;
+      cancelRequested = false;
+
+      sendBtn.innerText = "CANCEL SENDING";
+      sendBtn.classList.add('btn-red');
+      progressContainer.style.display = 'block';
+
+      const CHUNK_SIZE = 64 * 1024; // 64KB Chunk for smooth canceling & progress
+
+      for (let i = 0; i < files.length; i++) {
+        if (cancelRequested) break;
+
+        const file = files[i];
+        const arrayBuffer = await file.arrayBuffer();
+        const totalChunks = Math.ceil(arrayBuffer.byteLength / CHUNK_SIZE);
+
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+          if (cancelRequested) break;
+
+          const start = chunkIndex * CHUNK_SIZE;
+          const end = Math.min(arrayBuffer.byteLength, start + CHUNK_SIZE);
+          const chunk = arrayBuffer.slice(start, end);
+
+          // Calculate current progress percentage
+          let fileProgress = ((chunkIndex + 1) / totalChunks) * 100;
+          let overallProgress = Math.round(((i + (fileProgress / 100)) / files.length) * 100);
+
+          progressText.innerText = `SENDING (${i + 1}/${files.length}): ${overallProgress}%`;
+          progressBarFill.style.width = overallProgress + '%';
+
+          // Send chunk via Data Channel
+          conn.send({
+            type: 'file-chunk',
+            name: file.name,
+            mime: file.type,
+            size: file.size,
+            chunkIndex: chunkIndex,
+            totalChunks: totalChunks,
+            buffer: chunk
+          });
+
+          // Yield execution thread so Cancel click gets registered immediately
+          await sleep(10);
+        }
+
+        if (!cancelRequested) {
+          renderSentFile(file.name, (file.size / (1024*1024)).toFixed(2));
+        }
+      }
+
+      if (cancelRequested) {
+        progressText.innerText = "SENDING CANCELLED!";
+        progressBarFill.style.width = '0%';
+      } else {
+        progressText.innerText = `SENDING COMPLETE: 100%`;
+        progressBarFill.style.width = '100%';
+      }
+
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+        isSending = false;
+        cancelRequested = false;
+
+        sendBtn.innerText = "SEND FILES";
+        sendBtn.classList.remove('btn-red');
+        
+        input.value = '';
+        document.getElementById('fileCanvasBox').innerHTML = '<div style="color: #006622;">> No files selected...</div>';
+      }, 1200);
+    }
+
+    function renderSentFile(fileName, sizeMB) {
+      const box = document.getElementById('sentFilesBox');
+      if (box.querySelector('p')) box.innerHTML = '';
+
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <span class="file-name-text" title="${fileName}">> ${fileName} (${sizeMB} MB)</span>
+        <span class="file-status-tag">[SENT]</span>
+      `;
+      box.appendChild(item);
+    }
+
+    // Chunk Receiver Storage
+    let incomingFiles = {};
+
+    function renderReceivedFile(data) {
+      if (data.type === 'file-chunk') {
+        const fileKey = data.name + '_' + data.size;
+
+        if (!incomingFiles[fileKey]) {
+          incomingFiles[fileKey] = {
+            name: data.name,
+            mime: data.mime,
+            size: data.size,
+            chunks: new Array(data.totalChunks),
+            receivedCount: 0
+          };
+        }
+
+        incomingFiles[fileKey].chunks[data.chunkIndex] = data.buffer;
+        incomingFiles[fileKey].receivedCount++;
+
+        // Once all chunks are received, assemble file
+        if (incomingFiles[fileKey].receivedCount === data.totalChunks) {
+          const completeBlob = new Blob(incomingFiles[fileKey].chunks, { type: data.mime });
+          const downloadUrl = URL.createObjectURL(completeBlob);
+
+          const box = document.getElementById('receivedFilesBox');
+          if (box.querySelector('p')) box.innerHTML = '';
+
+          const item = document.createElement('div');
+          item.className = 'file-item';
+          item.innerHTML = `
+            <span class="file-name-text" title="${data.name}">> ${data.name}</span>
+            <a href="${downloadUrl}" download="${data.name}">DOWNLOAD</a>
+          `;
+          box.appendChild(item);
+
+          delete incomingFiles[fileKey];
+        }
+      }
+    }
+  </script>
 </body>
 </html>
