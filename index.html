@@ -6,6 +6,8 @@
   <title>File Sharing Tool</title>
   <!-- PeerJS CDN -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- JSZip CDN for ZIP creation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <style>
     :root {
       --bg-color: #030a03;
@@ -32,39 +34,40 @@
       color: var(--primary-green);
     }
 
-    /* Initial state: 30% from the top */
+    /* Initial State: Screen Center Alignment */
     body {
       display: flex;
       justify-content: center;
       align-items: flex-start;
       padding: 12px;
-      padding-top: 30vh;
+      padding-top: 25vh; /* Centered initial layout */
       overflow-x: hidden;
       transition: padding-top 0.3s ease;
     }
 
-    /* Active state when connected: Fits from top */
+    /* Active State when Connected: Fits from Top */
     body.is-connected {
       padding-top: 12px !important;
     }
 
     .container {
       width: 100%;
-      max-width: 700px;
+      max-width: 850px;
       background: var(--card-bg);
       border: 1px solid var(--primary-green);
-      padding: 20px;
+      padding: 18px;
       border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 255, 102, 0.1);
     }
 
     h1 {
       text-align: center;
-      font-size: clamp(1.1rem, 4vw, 1.4rem);
+      font-size: clamp(1.1rem, 3.5vw, 1.5rem);
       margin-bottom: 15px;
-      text-shadow: none;
       border-bottom: 1px dashed var(--primary-green);
       padding-bottom: 10px;
       word-break: break-word;
+      letter-spacing: 1px;
     }
 
     .status-panel {
@@ -74,22 +77,28 @@
       flex-wrap: wrap;
       gap: 10px;
       background: #051505;
-      padding: 12px 16px;
+      padding: 10px 14px;
       border: 1px solid var(--primary-green);
       border-radius: 6px;
       margin-bottom: 15px;
     }
 
     .code-box {
-      font-size: clamp(1.1rem, 3.8vw, 1.3rem);
+      font-size: clamp(1.1rem, 3.5vw, 1.3rem);
       font-weight: bold;
       letter-spacing: 2px;
       color: #ffffff;
-      text-shadow: none;
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      margin-left: 6px;
+      vertical-align: middle;
     }
 
     .timer-box {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: bold;
       color: #ffffff;
       background: #000;
@@ -104,6 +113,9 @@
       gap: 8px;
       margin-bottom: 10px;
       width: 100%;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     input[type="text"] {
@@ -155,7 +167,7 @@
       color: var(--alert-red);
       font-size: 0.8rem;
       text-align: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       display: none;
       word-break: break-word;
     }
@@ -192,7 +204,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 10px 20px;
+      padding: 10px 18px;
       border: 1px solid var(--primary-green);
       background: #000;
       cursor: pointer;
@@ -213,37 +225,61 @@
     }
 
     .file-canvas-box {
-      margin: 10px 0 8px 0;
+      margin: 10px 0;
       background: #000;
       border: 1px dashed var(--border-green);
       border-radius: 5px;
       padding: 8px;
-      min-height: 45px;
-      max-height: 85px;
+      min-height: 50px;
+      max-height: 120px;
       overflow-y: auto;
       text-align: left;
     }
 
-    .file-canvas-box div {
-      font-size: 0.78rem;
+    .selected-file-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
       color: var(--text-dim);
-      padding: 2px 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      padding: 3px 0;
+      border-bottom: 1px dotted #003311;
+    }
+
+    .selected-file-row:last-child {
+      border-bottom: none;
+    }
+
+    .remove-file-btn {
+      background: transparent;
+      color: var(--alert-red);
+      border: 1px solid var(--alert-red);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      line-height: 1.2;
+    }
+
+    .remove-file-btn:hover {
+      background: var(--alert-red);
+      color: #fff;
     }
 
     .dual-boxes {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 12px;
       margin-top: 15px;
       width: 100%;
     }
 
-    @media (max-width: 580px) {
+    @media (max-width: 640px) {
       .dual-boxes {
         grid-template-columns: 1fr;
+      }
+      .box-panel {
+        height: 220px !important;
       }
     }
 
@@ -251,19 +287,25 @@
       background: #000;
       border: 1px solid var(--border-green);
       border-radius: 5px;
-      padding: 10px;
-      height: 200px;
+      padding: 12px;
+      height: 240px;
       display: flex;
       flex-direction: column;
       min-width: 0;
       width: 100%;
     }
 
-    .box-panel h3 {
-      font-size: 0.82rem;
+    .box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       border-bottom: 1px solid var(--border-green);
-      padding-bottom: 5px;
-      margin-bottom: 8px;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+
+    .box-panel h3 {
+      font-size: 0.85rem;
       color: var(--primary-green);
     }
 
@@ -280,10 +322,10 @@
       align-items: center;
       gap: 8px;
       background: var(--dark-green);
-      padding: 6px 8px;
+      padding: 6px 10px;
       border: 1px solid var(--border-green);
       margin-bottom: 6px;
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       border-radius: 3px;
       min-width: 0;
       width: 100%;
@@ -297,24 +339,32 @@
       text-overflow: ellipsis;
     }
 
-    .file-item a, .file-status-tag {
+    .download-btn, .file-status-tag {
       color: var(--primary-green);
       text-decoration: none;
       border: 1px solid var(--primary-green);
-      padding: 2px 6px;
+      padding: 3px 6px;
       border-radius: 3px;
       flex-shrink: 0;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
+      cursor: pointer;
+      background: transparent;
     }
 
-    .file-item a:hover {
+    .download-btn:hover {
       background: var(--primary-green);
       color: #000;
     }
 
+    .download-btn.downloaded {
+      color: #008844;
+      border-color: #008844;
+      background: #001a08;
+    }
+
     .progress-container {
       margin-top: 12px;
-      padding: 8px;
+      padding: 10px;
       background: #000;
       border: 1px dashed var(--primary-green);
       border-radius: 4px;
@@ -328,7 +378,7 @@
       width: 20px;
       height: 20px;
       animation: spin 0.8s linear infinite;
-      margin: 0 auto 5px auto;
+      margin: 0 auto 6px auto;
     }
 
     @keyframes spin {
@@ -341,7 +391,7 @@
       height: 10px;
       background: #051005;
       border: 1px solid var(--primary-green);
-      margin-top: 5px;
+      margin-top: 6px;
       border-radius: 3px;
       overflow: hidden;
     }
@@ -361,7 +411,10 @@
 
     <!-- HEADER PANEL FOR YOUR CODE -->
     <div class="status-panel">
-      <div style="color: #ffffff;">YOUR CODE: <span id="myCode" class="code-box">GENERATING...</span></div>
+      <div style="color: #ffffff;">
+        YOUR CODE: <span id="myCode" class="code-box">GENERATING...</span>
+        <button class="btn-sm" onclick="refreshMyCode()">REFRESH</button>
+      </div>
       <div id="statusText">[INITIALIZING...]</div>
     </div>
 
@@ -379,7 +432,7 @@
       <div class="connection-header">
         <div>
           <span style="color: var(--primary-green); font-weight: bold; font-size: 0.85rem;">[CONNECTED]</span>
-          <span id="connectedInfo" style="margin-left: 5px; color: #fff; font-size: 0.85rem;">----</span>
+          <span id="connectedInfo" style="margin-left: 6px; color: #fff; font-size: 0.85rem;">----</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <div id="sessionTimer" class="timer-box">00:00:00</div>
@@ -394,7 +447,7 @@
           </svg>
           SELECT FILES
         </label>
-        <input type="file" id="fileInput" multiple onchange="updateSelectedFiles()">
+        <input type="file" id="fileInput" multiple onchange="handleFileSelect(event)">
 
         <!-- CANVAS BOX FOR SELECTED FILE LIST -->
         <div id="fileCanvasBox" class="file-canvas-box">
@@ -417,7 +470,9 @@
       <div class="dual-boxes">
         <!-- Sent Files Panel -->
         <div class="box-panel">
-          <h3>> SENT FILES</h3>
+          <div class="box-header">
+            <h3>> SENT FILES</h3>
+          </div>
           <div id="sentFilesBox" class="box-content">
             <p style="font-size: 0.75rem; color: var(--text-dim);">No files sent yet...</p>
           </div>
@@ -425,7 +480,10 @@
 
         <!-- Received Files Panel -->
         <div class="box-panel">
-          <h3>> RECEIVED FILES</h3>
+          <div class="box-header">
+            <h3>> RECEIVED FILES</h3>
+            <button id="downloadAllBtn" class="btn-sm" onclick="downloadAllFilesAsZip()">DOWNLOAD ALL (ZIP)</button>
+          </div>
           <div id="receivedFilesBox" class="box-content">
             <p style="font-size: 0.75rem; color: var(--text-dim);">No files received yet...</p>
           </div>
@@ -440,9 +498,13 @@
     let mySessionCode = Math.floor(1000 + Math.random() * 9000).toString();
 
     let timerInterval = null;
+    let connectTimeout = null;
     let totalSeconds = 0;
     let isSending = false;
     let cancelRequested = false;
+
+    let selectedFiles = [];
+    let receivedBlobsMap = new Map();
 
     const myCodeBox = document.getElementById('myCode');
     const statusText = document.getElementById('statusText');
@@ -469,6 +531,7 @@
       });
 
       peer.on('error', (err) => {
+        resetConnectButton();
         if (err.type === 'unavailable-id') {
           mySessionCode = Math.floor(1000 + Math.random() * 9000).toString();
           initPeer();
@@ -476,6 +539,29 @@
           showError("NETWORK ERROR: " + err.type);
         }
       });
+    }
+
+    function refreshMyCode() {
+      if (conn) {
+        showError("DISCONNECT BEFORE REFRESHING CODE!");
+        return;
+      }
+      if (peer) {
+        peer.destroy();
+      }
+      myCodeBox.innerText = "GENERATING...";
+      statusText.innerText = '[INITIALIZING...]';
+      targetInput.disabled = true;
+      connectBtn.disabled = true;
+
+      mySessionCode = Math.floor(1000 + Math.random() * 9000).toString();
+      initPeer();
+    }
+
+    function resetConnectButton() {
+      if (connectTimeout) clearTimeout(connectTimeout);
+      connectBtn.innerText = "CONNECT";
+      connectBtn.disabled = false;
     }
 
     function showError(msg) {
@@ -500,15 +586,26 @@
       connectBtn.innerText = "CONNECTING...";
       connectBtn.disabled = true;
 
+      connectTimeout = setTimeout(() => {
+        if (!conn || !conn.open) {
+          showError("CONNECTION TIMED OUT / INVALID CODE!");
+          resetConnectButton();
+          if (conn) conn.close();
+        }
+      }, 7000);
+
       conn = peer.connect(`hacker-share-${targetCode}`);
       setupConnectionEvents();
     }
 
     function setupConnectionEvents() {
       conn.on('open', () => {
+        if (connectTimeout) clearTimeout(connectTimeout);
+
         document.getElementById('connectForm').style.display = 'none';
         document.getElementById('workspace').style.display = 'block';
-        
+
+        // Add class to shift UI to full top fit upon connection
         document.body.classList.add('is-connected');
 
         const otherCode = conn.peer.replace('hacker-share-', '');
@@ -519,7 +616,6 @@
         startTimer();
       });
 
-      // Data Handler Fix
       conn.on('data', (data) => {
         renderReceivedFile(data);
       });
@@ -528,8 +624,9 @@
         disconnectPeer();
       });
 
-      conn.on('error', () => {
+      conn.on('error', (err) => {
         showError("PEER CONNECTION FAILED!");
+        resetConnectButton();
         disconnectPeer();
       });
     }
@@ -561,7 +658,9 @@
       }
       conn = null;
       stopTimer();
+      resetConnectButton();
 
+      // Remove class to restore centered alignment
       document.body.classList.remove('is-connected');
 
       document.getElementById('connectForm').style.display = 'block';
@@ -569,21 +668,38 @@
       statusText.innerText = '[READY TO PAIR]';
       statusText.style.color = 'var(--primary-green)';
       targetInput.value = '';
-      connectBtn.innerText = "CONNECT";
-      connectBtn.disabled = false;
     }
 
-    function updateSelectedFiles() {
-      const input = document.getElementById('fileInput');
+    function handleFileSelect(event) {
+      const files = Array.from(event.target.files);
+      selectedFiles = selectedFiles.concat(files);
+      renderSelectedFiles();
+      event.target.value = '';
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderSelectedFiles();
+    }
+
+    function renderSelectedFiles() {
       const box = document.getElementById('fileCanvasBox');
       box.innerHTML = '';
-      if(input.files.length === 0) {
+      if (selectedFiles.length === 0) {
         box.innerHTML = '<div style="color: #006622;">> No files selected...</div>';
         return;
       }
-      for (let i = 0; i < input.files.length; i++) {
-        box.innerHTML += `<div>> ${input.files[i].name} (${(input.files[i].size / (1024*1024)).toFixed(2)} MB)</div>`;
-      }
+      selectedFiles.forEach((file, index) => {
+        const row = document.createElement('div');
+        row.className = 'selected-file-row';
+        row.innerHTML = `
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; margin-right:8px;">
+            > ${file.name} (${(file.size / (1024*1024)).toFixed(2)} MB)
+          </span>
+          <button class="remove-file-btn" onclick="removeFile(${index})" title="Remove file">✕</button>
+        `;
+        box.appendChild(row);
+      });
     }
 
     function handleSendOrCancel() {
@@ -599,13 +715,12 @@
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     async function sendFiles() {
-      const input = document.getElementById('fileInput');
-      if (!input.files.length) {
+      if (!selectedFiles.length) {
         alert("Select at least one file!");
         return;
       }
 
-      const files = Array.from(input.files);
+      const files = [...selectedFiles];
       const progressContainer = document.getElementById('progressContainer');
       const progressText = document.getElementById('progressText');
       const progressBarFill = document.getElementById('progressBarFill');
@@ -618,7 +733,7 @@
       sendBtn.classList.add('btn-red');
       progressContainer.style.display = 'block';
 
-      const CHUNK_SIZE = 16 * 1024; // 16KB for PeerJS Direct Data Channel stability
+      const CHUNK_SIZE = 16 * 1024;
 
       for (let i = 0; i < files.length; i++) {
         if (cancelRequested) break;
@@ -640,7 +755,6 @@
           progressText.innerText = `SENDING (${i + 1}/${files.length}): ${overallProgress}%`;
           progressBarFill.style.width = overallProgress + '%';
 
-          // Direct Send Payload Fix
           conn.send({
             type: 'file-chunk',
             name: file.name,
@@ -674,9 +788,9 @@
 
         sendBtn.innerText = "SEND FILES";
         sendBtn.classList.remove('btn-red');
-        
-        input.value = '';
-        document.getElementById('fileCanvasBox').innerHTML = '<div style="color: #006622;">> No files selected...</div>';
+
+        selectedFiles = [];
+        renderSelectedFiles();
       }, 1200);
     }
 
@@ -693,7 +807,6 @@
       box.appendChild(item);
     }
 
-    // Chunk Receiver Storage Fix
     let incomingFiles = {};
 
     function renderReceivedFile(data) {
@@ -713,10 +826,11 @@
         incomingFiles[fileKey].chunks[data.chunkIndex] = data.buffer;
         incomingFiles[fileKey].receivedCount++;
 
-        // When all chunks arrive safely, create Blob and Download Link
         if (incomingFiles[fileKey].receivedCount === data.totalChunks) {
           const completeBlob = new Blob(incomingFiles[fileKey].chunks, { type: data.mime || 'application/octet-stream' });
           const downloadUrl = URL.createObjectURL(completeBlob);
+
+          receivedBlobsMap.set(data.name, completeBlob);
 
           const box = document.getElementById('receivedFilesBox');
           if (box.querySelector('p')) box.innerHTML = '';
@@ -725,12 +839,55 @@
           item.className = 'file-item';
           item.innerHTML = `
             <span class="file-name-text" title="${data.name}">> ${data.name}</span>
-            <a href="${downloadUrl}" download="${data.name}">DOWNLOAD</a>
+            <a href="${downloadUrl}" download="${data.name}" class="download-btn" onclick="markDownloaded(this)">DOWNLOAD</a>
           `;
           box.appendChild(item);
 
           delete incomingFiles[fileKey];
         }
+      }
+    }
+
+    function markDownloaded(element) {
+      element.innerText = "DOWNLOADED";
+      element.classList.add("downloaded");
+    }
+
+    async function downloadAllFilesAsZip() {
+      if (receivedBlobsMap.size === 0) {
+        alert("No received files to download!");
+        return;
+      }
+
+      const zipBtn = document.getElementById('downloadAllBtn');
+      const originalText = zipBtn.innerText;
+      zipBtn.innerText = "ZIPPING...";
+      zipBtn.disabled = true;
+
+      try {
+        const zip = new JSZip();
+
+        receivedBlobsMap.forEach((blob, filename) => {
+          zip.file(filename, blob);
+        });
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const zipUrl = URL.createObjectURL(zipBlob);
+
+        const a = document.createElement('a');
+        a.href = zipUrl;
+        a.download = "Bundle_Files.zip";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        document.querySelectorAll('#receivedFilesBox .download-btn').forEach(btn => markDownloaded(btn));
+
+      } catch (err) {
+        alert("Failed to create ZIP: " + err.message);
+      } finally {
+        zipBtn.innerText = originalText;
+        zipBtn.disabled = false;
       }
     }
   </script>
